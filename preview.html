@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>구구단 챌린지</title>
+<style>
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    font-family:Arial,"Noto Sans KR",sans-serif; background:linear-gradient(135deg,#e8f4ff,#fff4d9);
+    color:#243447; padding:16px;
+  }
+  .game{
+    width:min(520px,100%); background:#fff; border-radius:32px; padding:24px;
+    box-shadow:0 14px 40px rgba(0,0,0,.12); text-align:center;
+  }
+  h1{font-size:clamp(28px,7vw,42px); margin:4px 0 18px}
+  .top{display:flex; gap:12px; justify-content:center; margin-bottom:18px}
+  .stat{flex:1; background:#f4f7fb; border-radius:20px; padding:12px}
+  .label{font-size:14px; color:#667085}.value{font-size:28px;font-weight:800;margin-top:3px}
+  .timer{font-size:18px;font-weight:700;margin:8px 0 18px}
+  .bar{height:12px;background:#edf0f5;border-radius:99px;overflow:hidden;margin-bottom:24px}
+  #bar{height:100%;width:100%;background:#5b8def;transition:width .1s linear}
+  #question{font-size:clamp(52px,15vw,82px);font-weight:900;letter-spacing:1px;margin:8px 0 24px}
+  #feedback{height:42px;font-size:24px;font-weight:800}
+  .answers{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  button{
+    border:0;border-radius:24px;background:#eef5ff;color:#2457a6;
+    min-height:76px;font-size:clamp(28px,8vw,40px);font-weight:900;cursor:pointer;
+    box-shadow:0 5px 0 #d5e5ff; transition:transform .12s,box-shadow .12s,background .12s;
+    touch-action:manipulation;
+  }
+  button:active{transform:translateY(4px);box-shadow:0 1px 0 #d5e5ff}
+  button.correct{background:#d9f8df;color:#16713a;box-shadow:0 5px 0 #b7eac1;animation:bounce .4s ease}
+  button.wrong{background:#ffe0e0;color:#b42318;animation:shake .35s ease}
+  #start{
+    margin-top:20px;width:100%;background:#5b8def;color:white;box-shadow:0 5px 0 #3f70d2;
+    min-height:64px;font-size:24px;
+  }
+  .hidden{display:none!important}
+  .confetti{position:fixed;pointer-events:none;font-size:32px;animation:pop .7s ease forwards}
+  @keyframes bounce{50%{transform:scale(1.12) rotate(-2deg)}}
+  @keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+  @keyframes pop{0%{opacity:1;transform:translate(0,0) scale(.6)}100%{opacity:0;transform:translate(var(--x),var(--y)) scale(1.3) rotate(360deg)}}
+  .end{font-size:22px;font-weight:800;margin:12px 0}
+  @media(max-width:360px){.game{padding:18px}.answers{gap:10px}button{min-height:68px}}
+</style>
+</head>
+<body>
+<div class="game">
+  <h1>🎯 구구단 챌린지</h1>
+  <div class="top">
+    <div class="stat"><div class="label">점수</div><div id="score" class="value">0</div></div>
+    <div class="stat"><div class="label">문제</div><div id="count" class="value">0</div></div>
+  </div>
+  <div class="timer">⏱️ 남은 시간 <span id="time">30.0</span>초</div>
+  <div class="bar"><div id="bar"></div></div>
+  <div id="question">준비!</div>
+  <div id="feedback"></div>
+  <div id="answers" class="answers hidden"></div>
+  <button id="start">게임 시작!</button>
+  <div id="result" class="end hidden"></div>
+</div>
+
+<script>
+let score=0,count=0,time=30,answer=0,timer=null,playing=false;
+const $=id=>document.getElementById(id);
+
+function newQuestion(){
+  if(!playing)return;
+  const a=Math.floor(Math.random()*8)+2, b=Math.floor(Math.random()*9)+1;
+  answer=a*b;
+  $("question").textContent=`${a} × ${b} = ?`;
+  $("feedback").textContent="";
+  let opts=new Set([answer]);
+  while(opts.size<4){
+    let n=Math.floor(Math.random()*72)+2;
+    if(n!==answer) opts.add(n);
+  }
+  const arr=[...opts].sort(()=>Math.random()-.5);
+  $("answers").innerHTML="";
+  arr.forEach(n=>{
+    const btn=document.createElement("button");
+    btn.textContent=n;
+    btn.onclick=()=>check(n,btn);
+    $("answers").appendChild(btn);
+  });
+}
+function check(n,btn){
+  if(!playing)return;
+  if(n===answer){
+    score++; count++;
+    $("score").textContent=score; $("count").textContent=count;
+    btn.classList.add("correct");
+    $("feedback").textContent="✨ 정답!";
+    burst(btn);
+    setTimeout(newQuestion,220);
+  }else{
+    btn.classList.add("wrong");
+    $("feedback").textContent="다시 생각해봐! 💪";
+    setTimeout(()=>btn.classList.remove("wrong"),350);
+  }
+}
+function burst(btn){
+  const r=btn.getBoundingClientRect();
+  ["⭐","✨","🎉","💫"].forEach((e,i)=>{
+    const s=document.createElement("span");s.className="confetti";s.textContent=e;
+    s.style.left=(r.left+r.width/2)+"px";s.style.top=(r.top+r.height/2)+"px";
+    s.style.setProperty("--x",((i%2?1:-1)*(45+Math.random()*55))+"px");
+    s.style.setProperty("--y",(-30-Math.random()*80)+"px");
+    document.body.appendChild(s);setTimeout(()=>s.remove(),750);
+  });
+}
+function start(){
+  clearInterval(timer); score=0;count=0;time=30;playing=true;
+  $("score").textContent=0;$("count").textContent=0;$("result").classList.add("hidden");
+  $("answers").classList.remove("hidden");$("start").textContent="게임 다시 시작";
+  updateTime();newQuestion();
+  timer=setInterval(()=>{
+    time-=.1;if(time<=0){time=0;end();}
+    updateTime();
+  },100);
+}
+function updateTime(){
+  $("time").textContent=time.toFixed(1);$("bar").style.width=(time/30*100)+"%";
+}
+function end(){
+  clearInterval(timer);playing=false;
+  $("answers").classList.add("hidden");
+  $("question").textContent="⏰ 시간 끝!";
+  $("feedback").textContent="";
+  $("result").textContent=`총 ${count}문제 · ${score}개 정답!`;
+  $("result").classList.remove("hidden");
+}
+$("start").onclick=start;
+</script>
+</body>
+</html>
